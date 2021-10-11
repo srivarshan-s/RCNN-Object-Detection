@@ -8,15 +8,14 @@ from optparse import OptionParser
 import pickle
 import re
 
-from tensorflow.keras import backend as K
-from tensorflow.keras.optimizers import Adam, SGD, RMSprop
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
+from keras import backend as K
+from keras.optimizers import Adam, SGD, RMSprop
+from keras.layers import Input
+from keras.models import Model
 from keras_frcnn import config, data_generators
 from keras_frcnn import losses as losses
 import keras_frcnn.roi_helpers as roi_helpers
-# from tensorflow.keras.utils import generic_utils
-from tensorflow.keras.utils import Progbar
+from keras.utils import generic_utils
 
 sys.setrecursionlimit(40000)
 
@@ -82,12 +81,8 @@ else:
 	# set the path to weights based on backend and model
 	C.base_net_weights = nn.get_weight_path()
 
-# train_imgs, classes_count, class_mapping = get_data(options.train_path, 'trainval')
-# val_imgs, _, _ = get_data(options.train_path, 'test')
-
-train_imgs, classes_count, class_mapping = get_data(options.train_path)
-val_imgs, _, _ = get_data(options.train_path)
-
+train_imgs, classes_count, class_mapping = get_data(options.train_path, 'trainval')
+val_imgs, _, _ = get_data(options.train_path, 'test')
 
 if 'bg' not in classes_count:
 	classes_count['bg'] = 0
@@ -118,10 +113,10 @@ print(f'Num train samples {len(train_imgs)}')
 print(f'Num val samples {len(val_imgs)}')
 
 
-data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_data_format(), mode='train')
-data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, nn.get_img_output_length,K.image_data_format(), mode='val')
+data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.common.image_dim_ordering(), mode='train')
+data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, nn.get_img_output_length,K.common.image_dim_ordering(), mode='val')
 
-if K.image_data_format() == 'th':
+if K.common.image_dim_ordering() == 'th':
 	input_shape_img = (3, None, None)
 else:
 	input_shape_img = (None, None, 3)
@@ -130,7 +125,6 @@ img_input = Input(shape=input_shape_img)
 roi_input = Input(shape=(None, 4))
 
 # define the base network (resnet here, can be VGG, Inception, etc)
-print(img_input)
 shared_layers = nn.nn_base(img_input, trainable=True)
 
 # define the RPN, built on the base layers
@@ -177,7 +171,7 @@ vis = True
 
 for epoch_num in range(num_epochs):
 
-	progbar = Progbar(epoch_length)
+	progbar = generic_utils.Progbar(epoch_length)
 	print(f'Epoch {epoch_num + 1}/{num_epochs}')
 
 	while True:
@@ -196,7 +190,7 @@ for epoch_num in range(num_epochs):
 
 			P_rpn = model_rpn.predict_on_batch(X)
 
-			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_data_format(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
+			R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.common.image_dim_ordering(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
 			# note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
 			X2, Y1, Y2, IouS = roi_helpers.calc_iou(R, img_data, C, class_mapping)
 
