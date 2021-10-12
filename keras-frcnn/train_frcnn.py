@@ -155,8 +155,8 @@ model_rpn.compile(optimizer=optimizer, loss=[losses.rpn_loss_cls(num_anchors), l
 model_classifier.compile(optimizer=optimizer_classifier, loss=[losses.class_loss_cls, losses.class_loss_regr(len(classes_count)-1)], metrics={f'dense_class_{len(classes_count)}': 'accuracy'})
 model_all.compile(optimizer='sgd', loss='mae')
 
-epoch_length = 100
-num_epochs = 100
+epoch_length = 20
+num_epochs = 20
 iter_num = 0
 
 losses = np.zeros((epoch_length, 5))
